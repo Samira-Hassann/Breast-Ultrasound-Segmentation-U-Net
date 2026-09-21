@@ -10,7 +10,7 @@ from src.preprocessing import preprocess_image
 
 
 # =========================================================
-# Configuration
+# Page Configuration
 # =========================================================
 
 st.set_page_config(
@@ -21,7 +21,7 @@ st.set_page_config(
 
 
 # =========================================================
-# Simple Styling
+# Custom Styling
 # =========================================================
 
 st.markdown(
@@ -37,12 +37,14 @@ st.markdown(
     .main-title {
         font-size: 38px;
         font-weight: 700;
-        margin-bottom: 4px;
+        text-align: center;
+        margin-bottom: 5px;
     }
 
     .subtitle {
         font-size: 17px;
         opacity: 0.70;
+        text-align: center;
         margin-bottom: 25px;
     }
 
@@ -53,13 +55,42 @@ st.markdown(
         margin-bottom: 15px;
     }
 
+    .center-title {
+        text-align: center;
+        font-size: 22px;
+        font-weight: 700;
+        margin-top: 25px;
+        margin-bottom: 15px;
+    }
+
+    .prediction {
+        text-align: center;
+        font-size: 28px;
+        font-weight: 700;
+        margin-top: 30px;
+        margin-bottom: 25px;
+    }
+
+    .probability-name {
+        text-align: center;
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .probability-value {
+        text-align: center;
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
     .footer {
         text-align: center;
         opacity: 0.55;
         font-size: 13px;
         margin-top: 35px;
         padding-top: 20px;
-        border-top: 1px solid rgba(128,128,128,0.25);
+        border-top: 1px solid rgba(128, 128, 128, 0.25);
     }
 
     </style>
@@ -95,14 +126,9 @@ def download_model():
     if os.path.exists(MODEL_PATH):
         return
 
-    os.makedirs(
-        "models",
-        exist_ok=True
-    )
+    os.makedirs("models", exist_ok=True)
 
-    url = (
-        f"https://drive.google.com/uc?id={DRIVE_FILE_ID}"
-    )
+    url = f"https://drive.google.com/uc?id={DRIVE_FILE_ID}"
 
     gdown.download(
         url,
@@ -192,8 +218,7 @@ st.markdown(
 
 st.markdown(
     '<div class="subtitle">'
-    'Multi-task deep learning for breast lesion '
-    'segmentation and classification.'
+    'Multi-task deep learning for breast lesion analysis.'
     '</div>',
     unsafe_allow_html=True
 )
@@ -222,29 +247,13 @@ uploaded_file = st.file_uploader(
 
 if uploaded_file is not None:
 
-    image = Image.open(
-        uploaded_file
-    ).convert("RGB")
+    image = Image.open(uploaded_file).convert("RGB")
 
+    input_tensor = preprocess_image(image).to(device)
 
-    # =====================================================
-    # Input + Mask
-    # =====================================================
-
-    st.markdown(
-        '<div class="section-title">🖼️ Analysis</div>',
-        unsafe_allow_html=True
-    )
-
-    # Preprocessing
-    input_tensor = preprocess_image(image)
-
-    input_tensor = input_tensor.to(device)
-
-
-    # =====================================================
-    # Model Prediction
-    # =====================================================
+    # -----------------------------------------------------
+    # Model Inference
+    # -----------------------------------------------------
 
     with st.spinner("Analyzing ultrasound image..."):
 
@@ -254,10 +263,9 @@ if uploaded_file is not None:
                 input_tensor
             )
 
-
-    # =====================================================
-    # Classification
-    # =====================================================
+    # -----------------------------------------------------
+    # Classification Probabilities
+    # -----------------------------------------------------
 
     probabilities = torch.softmax(
         classification_output,
@@ -269,19 +277,11 @@ if uploaded_file is not None:
         dim=1
     ).item()
 
-    predicted_label = class_names[
-        predicted_class
-    ]
+    predicted_label = class_names[predicted_class]
 
-    confidence = probabilities[
-        0,
-        predicted_class
-    ].item()
-
-
-    # =====================================================
+    # -----------------------------------------------------
     # Segmentation
-    # =====================================================
+    # -----------------------------------------------------
 
     segmentation_probability = torch.sigmoid(
         segmentation_output
@@ -300,55 +300,76 @@ if uploaded_file is not None:
 
 
     # =====================================================
-    # Images Side by Side
+    # Analysis Images
     # =====================================================
+
+    st.markdown(
+        '<div class="center-title">🖼️ Analysis</div>',
+        unsafe_allow_html=True
+    )
 
     image_col, mask_col = st.columns(
         2,
         gap="large"
     )
 
+    # -----------------------------------------------------
+    # Original Image
+    # -----------------------------------------------------
+
     with image_col:
 
-        st.subheader("Original Ultrasound")
+        st.markdown(
+            "<h4 style='text-align:center;'>"
+            "Original Ultrasound"
+            "</h4>",
+            unsafe_allow_html=True
+        )
 
         st.image(
             image,
             use_container_width=True
         )
 
-        st.caption(
-            f"Original size: {image.width} × {image.height}"
-        )
-
+    # -----------------------------------------------------
+    # Predicted Mask
+    # -----------------------------------------------------
 
     with mask_col:
 
-        st.subheader("Predicted Lesion Mask")
+        st.markdown(
+            "<h4 style='text-align:center;'>"
+            "Predicted Lesion Mask"
+            "</h4>",
+            unsafe_allow_html=True
+        )
 
         st.image(
             predicted_mask,
             use_container_width=True
         )
 
-        st.caption(
-            "Segmentation output"
-        )
-
 
     # =====================================================
-    # Prediction Results
+    # Prediction
     # =====================================================
-    
+
     st.markdown(
-        f"### 🎯 Prediction: **{predicted_label}**  ·  **{confidence * 100:.2f}%**"
+        f"""
+        <div class="prediction">
+            🎯 {predicted_label}
+        </div>
+        """,
+        unsafe_allow_html=True
     )
+
+
     # =====================================================
     # Classification Probabilities
     # =====================================================
 
     st.markdown(
-        '<div class="section-title">'
+        '<div class="center-title">'
         '📊 Classification Probabilities'
         '</div>',
         unsafe_allow_html=True
@@ -364,6 +385,7 @@ if uploaded_file is not None:
         probability_col3
     ]
 
+
     for class_id, class_name in class_names.items():
 
         probability = probabilities[
@@ -373,14 +395,20 @@ if uploaded_file is not None:
 
         with probability_columns[class_id]:
 
-            st.metric(
-                class_name,
-                f"{probability * 100:.2f}%"
+            st.markdown(
+                f"""
+                <div class="probability-name">
+                    {class_name}
+                </div>
+
+                <div class="probability-value">
+                    {probability * 100:.2f}%
+                </div>
+                """,
+                unsafe_allow_html=True
             )
 
-            st.progress(
-                probability
-            )
+            st.progress(probability)
 
 
 # =========================================================
