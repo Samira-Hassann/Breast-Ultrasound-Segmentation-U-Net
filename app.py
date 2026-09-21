@@ -1,3 +1,4 @@
+
 import streamlit as st
 import torch
 from PIL import Image
@@ -15,8 +16,7 @@ from src.preprocessing import preprocess_image
 st.set_page_config(
     page_title="Breast Ultrasound AI",
     page_icon="🩺",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
 
 
@@ -28,230 +28,92 @@ st.markdown(
     """
     <style>
 
-    /* ---------- Main App ---------- */
-
+    /* Main background */
     .stApp {
-        background: #f7f9fc;
+        background-color: #f8fafc;
     }
 
-    .main .block-container {
+    /* Main container */
+    .block-container {
+        max-width: 1200px;
         padding-top: 2rem;
         padding-bottom: 3rem;
-        max-width: 1250px;
     }
 
-
-    /* ---------- Header ---------- */
-
-    .hero {
-        background: linear-gradient(
-            135deg,
-            #0f766e 0%,
-            #155e75 100%
-        );
-
-        padding: 2.2rem 2.5rem;
-        border-radius: 20px;
-        margin-bottom: 2rem;
-
-        box-shadow:
-            0 10px 30px rgba(15, 118, 110, 0.15);
-    }
-
-    .hero-title {
-        color: white;
-        font-size: 2.5rem;
-        font-weight: 750;
-        margin-bottom: 0.4rem;
-    }
-
-    .hero-subtitle {
-        color: rgba(255,255,255,0.88);
-        font-size: 1.05rem;
-        margin-bottom: 0;
-        line-height: 1.6;
-    }
-
-
-    /* ---------- Section Titles ---------- */
-
-    .section-title {
-        font-size: 1.35rem;
-        font-weight: 700;
-        color: #1f2937;
-        margin-top: 1.5rem;
-        margin-bottom: 1rem;
-    }
-
-
-    /* ---------- Upload Box ---------- */
-
-    .upload-info {
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 16px;
-        padding: 1.4rem;
-        margin-bottom: 1.2rem;
-
-        box-shadow:
-            0 4px 15px rgba(15, 23, 42, 0.04);
-    }
-
-    .upload-title {
-        font-size: 1.05rem;
-        font-weight: 650;
-        color: #111827;
-    }
-
-    .upload-description {
-        color: #6b7280;
-        font-size: 0.92rem;
-        margin-top: 0.35rem;
-    }
-
-
-    /* ---------- Result Cards ---------- */
-
-    .result-card {
-        background: white;
-        border: 1px solid #e5e7eb;
+    /* Header */
+    .header {
+        background: linear-gradient(135deg, #0f766e, #155e75);
+        padding: 32px;
         border-radius: 18px;
-        padding: 1.4rem;
-
-        box-shadow:
-            0 5px 20px rgba(15, 23, 42, 0.05);
-
-        height: 100%;
+        margin-bottom: 28px;
     }
 
-    .result-label {
-        color: #6b7280;
-        font-size: 0.85rem;
+    .header h1 {
+        color: white;
+        margin: 0;
+        font-size: 38px;
+    }
+
+    .header p {
+        color: #e0f2fe;
+        font-size: 17px;
+        margin-top: 10px;
+        margin-bottom: 0;
+    }
+
+    /* Cards */
+    .card {
+        background: white;
+        padding: 24px;
+        border-radius: 16px;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        margin-bottom: 20px;
+    }
+
+    .card-title {
+        color: #374151;
+        font-size: 14px;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.04em;
-        margin-bottom: 0.35rem;
+        letter-spacing: 0.5px;
     }
 
-    .result-value {
+    .card-value {
         color: #111827;
-        font-size: 1.7rem;
-        font-weight: 750;
-    }
-
-
-    /* ---------- Classification Colors ---------- */
-
-    .benign {
-        color: #047857;
-    }
-
-    .malignant {
-        color: #dc2626;
-    }
-
-    .normal {
-        color: #2563eb;
-    }
-
-
-    /* ---------- Probability Cards ---------- */
-
-    .prob-card {
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 14px;
-        padding: 1rem 1.2rem;
-        margin-bottom: 0.8rem;
-
-        box-shadow:
-            0 3px 12px rgba(15, 23, 42, 0.035);
-    }
-
-    .prob-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 0.55rem;
-    }
-
-    .prob-name {
-        font-weight: 650;
-        color: #374151;
-    }
-
-    .prob-value {
+        font-size: 28px;
         font-weight: 700;
+        margin-top: 6px;
+    }
+
+    /* Section title */
+    .section-title {
         color: #111827;
-    }
-
-
-    /* ---------- Info Cards ---------- */
-
-    .info-card {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 16px;
-        padding: 1.2rem;
-        height: 100%;
-    }
-
-    .info-title {
-        font-size: 0.9rem;
-        color: #6b7280;
-        margin-bottom: 0.35rem;
-    }
-
-    .info-value {
-        font-size: 1.1rem;
+        font-size: 22px;
         font-weight: 700;
-        color: #111827;
+        margin-top: 25px;
+        margin-bottom: 15px;
     }
 
-
-    /* ---------- Disclaimer ---------- */
-
+    /* Disclaimer */
     .disclaimer {
         background: #fff7ed;
         border: 1px solid #fed7aa;
-        border-radius: 14px;
-        padding: 1rem 1.2rem;
+        padding: 15px 18px;
+        border-radius: 12px;
         color: #9a3412;
-        font-size: 0.86rem;
-        line-height: 1.5;
-        margin-top: 2rem;
+        font-size: 14px;
+        margin-top: 30px;
     }
 
-
-    /* ---------- Footer ---------- */
-
+    /* Footer */
     .footer {
         text-align: center;
         color: #9ca3af;
-        font-size: 0.82rem;
-        margin-top: 2.5rem;
-        padding-top: 1.5rem;
+        font-size: 13px;
+        margin-top: 35px;
+        padding-top: 20px;
         border-top: 1px solid #e5e7eb;
-    }
-
-
-    /* ---------- Sidebar ---------- */
-
-    [data-testid="stSidebar"] {
-        background: #ffffff;
-        border-right: 1px solid #e5e7eb;
-    }
-
-    .sidebar-title {
-        font-size: 1.15rem;
-        font-weight: 750;
-        color: #111827;
-    }
-
-    .sidebar-text {
-        color: #6b7280;
-        font-size: 0.9rem;
-        line-height: 1.6;
     }
 
     </style>
@@ -343,81 +205,57 @@ class_names = {
 
 
 # =========================================================
-# Sidebar
-# =========================================================
-
-with st.sidebar:
-
-    st.markdown(
-        '<div class="sidebar-title">🩺 About the Model</div>',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        """
-        <div class="sidebar-text">
-
-        <br>
-
-        This application uses a <b>Multi-Task U-Net</b>
-        architecture for breast ultrasound analysis.
-
-        <br><br>
-
-        <b>Encoder</b><br>
-        ResNet34 pretrained on ImageNet
-
-        <br><br>
-
-        <b>Tasks</b><br>
-        • Lesion segmentation<br>
-        • Three-class classification
-
-        <br><br>
-
-        <b>Input Size</b><br>
-        256 × 256
-
-        <br><br>
-
-        <b>Classes</b><br>
-        • Benign<br>
-        • Malignant<br>
-        • Normal
-
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    st.divider()
-
-    st.caption(
-        "Research / educational application"
-    )
-
-
-# =========================================================
-# Hero Header
+# Header
 # =========================================================
 
 st.markdown(
     """
-    <div class="hero">
+    <div class="header">
 
-        <div class="hero-title">
-            🩺 Breast Ultrasound AI
-        </div>
+        <h1>🩺 Breast Ultrasound AI</h1>
 
-        <div class="hero-subtitle">
+        <p>
             Multi-task deep learning for breast lesion
             segmentation and classification.
-        </div>
+        </p>
 
     </div>
     """,
     unsafe_allow_html=True
 )
+
+
+# =========================================================
+# Sidebar
+# =========================================================
+
+with st.sidebar:
+
+    st.header("🩺 About")
+
+    st.write(
+        """
+        This application uses a Multi-Task U-Net
+        architecture for breast ultrasound analysis.
+        """
+    )
+
+    st.divider()
+
+    st.write("**Architecture**")
+    st.write("U-Net + ResNet34 Encoder")
+
+    st.write("**Input Size**")
+    st.write("256 × 256")
+
+    st.write("**Tasks**")
+    st.write("• Lesion Segmentation")
+    st.write("• Image Classification")
+
+    st.write("**Classes**")
+    st.write("• Benign")
+    st.write("• Malignant")
+    st.write("• Normal")
 
 
 # =========================================================
@@ -429,28 +267,9 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.markdown(
-    """
-    <div class="upload-info">
-
-        <div class="upload-title">
-            Upload a breast ultrasound image
-        </div>
-
-        <div class="upload-description">
-            Supported formats: JPG, JPEG, PNG
-        </div>
-
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-
 uploaded_file = st.file_uploader(
-    "Choose an image",
-    type=["jpg", "jpeg", "png"],
-    label_visibility="collapsed"
+    "Choose an ultrasound image",
+    type=["jpg", "jpeg", "png"]
 )
 
 
@@ -466,26 +285,52 @@ if uploaded_file is not None:
 
 
     # =====================================================
-    # Image Preview
+    # Input Image
     # =====================================================
 
     st.markdown(
-        '<div class="section-title">🖼️ Image Analysis</div>',
+        '<div class="section-title">🖼️ Input Image</div>',
         unsafe_allow_html=True
     )
 
     image_col, info_col = st.columns(
-        [1.5, 1],
+        [2, 1],
         gap="large"
     )
-
 
     with image_col:
 
         st.image(
             image,
-            caption="Uploaded Ultrasound Image",
+            caption="Uploaded Ultrasound",
             use_container_width=True
+        )
+
+    with info_col:
+
+        st.markdown(
+            """
+            <div class="card">
+
+                <div class="card-title">
+                    Image Information
+                </div>
+
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        st.write(
+            f"**Format:** {image.format or 'Image'}"
+        )
+
+        st.write(
+            f"**Original Size:** {image.width} × {image.height}"
+        )
+
+        st.write(
+            "**Model Input:** 256 × 256"
         )
 
 
@@ -503,12 +348,10 @@ if uploaded_file is not None:
 
 
     # =====================================================
-    # Model Prediction
+    # Prediction
     # =====================================================
 
-    with st.spinner(
-        "Analyzing ultrasound image..."
-    ):
+    with st.spinner("Analyzing ultrasound image..."):
 
         with torch.no_grad():
 
@@ -562,43 +405,46 @@ if uploaded_file is not None:
 
 
     # =====================================================
-    # Quick Result
+    # Prediction Summary
     # =====================================================
 
-    with info_col:
+    st.markdown(
+        '<div class="section-title">🎯 Prediction Summary</div>',
+        unsafe_allow_html=True
+    )
 
-        if predicted_label == "Benign":
-            label_class = "benign"
-            icon = "🟢"
+    col1, col2 = st.columns(2)
 
-        elif predicted_label == "Malignant":
-            label_class = "malignant"
-            icon = "🔴"
-
-        else:
-            label_class = "normal"
-            icon = "🔵"
-
+    with col1:
 
         st.markdown(
             f"""
-            <div class="result-card">
+            <div class="card">
 
-                <div class="result-label">
-                    Predicted Class
+                <div class="card-title">
+                    Classification
                 </div>
 
-                <div class="result-value {label_class}">
-                    {icon} {predicted_label}
+                <div class="card-value">
+                    {predicted_label}
                 </div>
 
-                <br>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-                <div class="result-label">
+    with col2:
+
+        st.markdown(
+            f"""
+            <div class="card">
+
+                <div class="card-title">
                     Confidence
                 </div>
 
-                <div class="result-value">
+                <div class="card-value">
                     {confidence * 100:.2f}%
                 </div>
 
@@ -608,15 +454,14 @@ if uploaded_file is not None:
         )
 
 
-# =========================================================
-# Results
-# =========================================================
+    # =====================================================
+    # Results
+    # =====================================================
 
     st.markdown(
-        '<div class="section-title">🎯 Prediction Results</div>',
+        '<div class="section-title">🔬 Analysis Results</div>',
         unsafe_allow_html=True
     )
-
 
     result_col1, result_col2 = st.columns(
         2,
@@ -632,14 +477,10 @@ if uploaded_file is not None:
 
         st.markdown(
             """
-            <div class="result-card">
+            <div class="card">
 
-                <div class="result-label">
-                    Segmentation
-                </div>
-
-                <div class="result-value">
-                    🎯 Lesion Mask
+                <div class="card-title">
+                    Lesion Segmentation
                 </div>
 
             </div>
@@ -655,29 +496,23 @@ if uploaded_file is not None:
 
 
     # -----------------------------------------------------
-    # Classification Probabilities
+    # Probabilities
     # -----------------------------------------------------
 
     with result_col2:
 
         st.markdown(
             """
-            <div class="result-card">
+            <div class="card">
 
-                <div class="result-label">
-                    Classification
-                </div>
-
-                <div class="result-value">
-                    📊 Class Probabilities
+                <div class="card-title">
+                    Classification Probabilities
                 </div>
 
             </div>
             """,
             unsafe_allow_html=True
         )
-
-        st.write("")
 
         for class_id, class_name in class_names.items():
 
@@ -686,25 +521,9 @@ if uploaded_file is not None:
                 class_id
             ].item()
 
-            st.markdown(
-                f"""
-                <div class="prob-card">
-
-                    <div class="prob-header">
-
-                        <span class="prob-name">
-                            {class_name}
-                        </span>
-
-                        <span class="prob-value">
-                            {probability * 100:.2f}%
-                        </span>
-
-                    </div>
-
-                </div>
-                """,
-                unsafe_allow_html=True
+            st.write(
+                f"**{class_name}** — "
+                f"{probability * 100:.2f}%"
             )
 
             st.progress(
@@ -720,11 +539,11 @@ st.markdown(
     """
     <div class="disclaimer">
 
-        ⚠️ <b>Important:</b>
-        This application is intended for research and
-        educational purposes only. It is not a medical
-        diagnostic tool and should not be used as a substitute
-        for professional medical evaluation.
+        ⚠️ <b>Research & Educational Use Only</b><br>
+
+        This application is not a medical diagnostic tool
+        and should not replace evaluation by a qualified
+        healthcare professional.
 
     </div>
     """,
@@ -740,12 +559,11 @@ st.markdown(
     """
     <div class="footer">
 
-        🩺 Breast Ultrasound Multi-Task Analysis
+        🩺 Breast Ultrasound AI
         <br>
-        Built with PyTorch • U-Net • ResNet34 • Streamlit
+        PyTorch • U-Net • ResNet34 • Streamlit
 
     </div>
     """,
     unsafe_allow_html=True
 )
-
