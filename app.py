@@ -35,33 +35,31 @@ st.markdown(
     }
 
     .main-title {
-        font-size: 40px;
+        font-size: 38px;
         font-weight: 700;
-        color: #0f766e;
-        margin-bottom: 5px;
+        margin-bottom: 4px;
     }
 
     .subtitle {
         font-size: 17px;
-        color: #64748b;
+        opacity: 0.70;
         margin-bottom: 25px;
     }
 
     .section-title {
-        font-size: 23px;
+        font-size: 22px;
         font-weight: 700;
-        color: #1e293b;
-        margin-top: 30px;
+        margin-top: 28px;
         margin-bottom: 15px;
     }
 
     .footer {
         text-align: center;
-        color: #94a3b8;
+        opacity: 0.55;
         font-size: 13px;
         margin-top: 35px;
         padding-top: 20px;
-        border-top: 1px solid #e2e8f0;
+        border-top: 1px solid rgba(128,128,128,0.25);
     }
 
     </style>
@@ -120,13 +118,10 @@ def download_model():
 @st.cache_resource
 def load_model():
 
-    # Download model if it doesn't exist
     download_model()
 
-    # Create model architecture
     model = MultiTaskUNet()
 
-    # Load trained weights
     checkpoint = torch.load(
         MODEL_PATH,
         map_location=device
@@ -207,7 +202,7 @@ st.divider()
 
 
 # =========================================================
-# Upload Image
+# Upload
 # =========================================================
 
 st.markdown(
@@ -227,76 +222,31 @@ uploaded_file = st.file_uploader(
 
 if uploaded_file is not None:
 
-    # =====================================================
-    # Open Image
-    # =====================================================
-
     image = Image.open(
         uploaded_file
     ).convert("RGB")
 
 
     # =====================================================
-    # Input Image
+    # Input + Mask
     # =====================================================
 
     st.markdown(
-        '<div class="section-title">🖼️ Input Image</div>',
+        '<div class="section-title">🖼️ Analysis</div>',
         unsafe_allow_html=True
     )
 
-    image_col, info_col = st.columns(
-        [2, 1],
-        gap="large"
-    )
-
-    with image_col:
-
-        st.image(
-            image,
-            caption="Uploaded Ultrasound Image",
-            use_container_width=True
-        )
-
-    with info_col:
-
-        st.subheader("Image Information")
-
-        st.write(
-            f"**Format:** "
-            f"{image.format or 'Image'}"
-        )
-
-        st.write(
-            f"**Original Size:** "
-            f"{image.width} × {image.height}"
-        )
-
-        st.write(
-            "**Model Input:** 256 × 256"
-        )
-
-
-    # =====================================================
     # Preprocessing
-    # =====================================================
+    input_tensor = preprocess_image(image)
 
-    input_tensor = preprocess_image(
-        image
-    )
-
-    input_tensor = input_tensor.to(
-        device
-    )
+    input_tensor = input_tensor.to(device)
 
 
     # =====================================================
     # Model Prediction
     # =====================================================
 
-    with st.spinner(
-        "Analyzing ultrasound image..."
-    ):
+    with st.spinner("Analyzing ultrasound image..."):
 
         with torch.no_grad():
 
@@ -350,6 +300,43 @@ if uploaded_file is not None:
 
 
     # =====================================================
+    # Images Side by Side
+    # =====================================================
+
+    image_col, mask_col = st.columns(
+        2,
+        gap="large"
+    )
+
+    with image_col:
+
+        st.subheader("Original Ultrasound")
+
+        st.image(
+            image,
+            use_container_width=True
+        )
+
+        st.caption(
+            f"Original size: {image.width} × {image.height}"
+        )
+
+
+    with mask_col:
+
+        st.subheader("Predicted Lesion Mask")
+
+        st.image(
+            predicted_mask,
+            use_container_width=True
+        )
+
+        st.caption(
+            "Segmentation output"
+        )
+
+
+    # =====================================================
     # Prediction Results
     # =====================================================
 
@@ -364,37 +351,33 @@ if uploaded_file is not None:
     )
 
 
-    # =====================================================
-    # Classification Result
-    # =====================================================
-
     with result_col1:
 
         st.subheader("Classification")
 
         st.metric(
-            label="Predicted Class",
-            value=predicted_label
+            "Predicted Class",
+            predicted_label
         )
 
         st.metric(
-            label="Confidence",
-            value=f"{confidence * 100:.2f}%"
+            "Confidence",
+            f"{confidence * 100:.2f}%"
         )
 
 
-    # =====================================================
-    # Segmentation Result
-    # =====================================================
-
     with result_col2:
 
-        st.subheader("Lesion Segmentation")
+        st.subheader("Model Input")
 
-        st.image(
-            predicted_mask,
-            caption="Predicted Lesion Mask",
-            use_container_width=True
+        st.metric(
+            "Input Resolution",
+            "256 × 256"
+        )
+
+        st.metric(
+            "Device",
+            str(device).upper()
         )
 
 
@@ -429,8 +412,8 @@ if uploaded_file is not None:
         with probability_columns[class_id]:
 
             st.metric(
-                label=class_name,
-                value=f"{probability * 100:.2f}%"
+                class_name,
+                f"{probability * 100:.2f}%"
             )
 
             st.progress(
