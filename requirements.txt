@@ -4,3 +4,4 @@ torchvision
 segmentation-models-pytorch
 Pillow
 numpy
+gdown
