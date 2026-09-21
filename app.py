@@ -21,78 +21,53 @@ st.set_page_config(
 
 
 # =========================================================
-# Custom Styling
+# Simple Styling
 # =========================================================
 
-st.markdown("""
-<style>
+st.markdown(
+    """
+    <style>
 
-.block-container {
-    max-width: 1200px;
-    padding-top: 2rem;
-    padding-bottom: 3rem;
-}
+    .block-container {
+        max-width: 1200px;
+        padding-top: 2rem;
+        padding-bottom: 3rem;
+    }
 
-/* Main title */
-.main-title {
-    font-size: 40px;
-    font-weight: 700;
-    color: #0f766e;
-    margin-bottom: 5px;
-}
+    .main-title {
+        font-size: 40px;
+        font-weight: 700;
+        color: #0f766e;
+        margin-bottom: 5px;
+    }
 
-.subtitle {
-    font-size: 17px;
-    color: #64748b;
-    margin-bottom: 25px;
-}
+    .subtitle {
+        font-size: 17px;
+        color: #64748b;
+        margin-bottom: 25px;
+    }
 
-/* Section titles */
-.section-title {
-    font-size: 23px;
-    font-weight: 700;
-    color: #1e293b;
-    margin-top: 30px;
-    margin-bottom: 15px;
-}
+    .section-title {
+        font-size: 23px;
+        font-weight: 700;
+        color: #1e293b;
+        margin-top: 30px;
+        margin-bottom: 15px;
+    }
 
-/* Result cards */
-.result-card {
-    background-color: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 14px;
-    padding: 20px;
-    margin-bottom: 15px;
-}
+    .footer {
+        text-align: center;
+        color: #94a3b8;
+        font-size: 13px;
+        margin-top: 35px;
+        padding-top: 20px;
+        border-top: 1px solid #e2e8f0;
+    }
 
-/* Small labels */
-.card-label {
-    font-size: 14px;
-    color: #64748b;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.card-value {
-    font-size: 27px;
-    font-weight: 700;
-    color: #0f172a;
-    margin-top: 5px;
-}
-
-/* Footer */
-.footer {
-    text-align: center;
-    color: #94a3b8;
-    font-size: 13px;
-    margin-top: 35px;
-    padding-top: 20px;
-    border-top: 1px solid #e2e8f0;
-}
-
-</style>
-""", unsafe_allow_html=True)
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 
 # =========================================================
@@ -252,13 +227,17 @@ uploaded_file = st.file_uploader(
 
 if uploaded_file is not None:
 
+    # =====================================================
+    # Open Image
+    # =====================================================
+
     image = Image.open(
         uploaded_file
     ).convert("RGB")
 
 
     # =====================================================
-    # Uploaded Image
+    # Input Image
     # =====================================================
 
     st.markdown(
@@ -281,16 +260,7 @@ if uploaded_file is not None:
 
     with info_col:
 
-        st.markdown(
-            """
-            <div class="result-card">
-                <div class="card-label">
-                    Image Information
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        st.subheader("Image Information")
 
         st.write(
             f"**Format:** "
@@ -400,38 +370,16 @@ if uploaded_file is not None:
 
     with result_col1:
 
-        st.markdown(
-            f"""
-            <div class="result-card">
+        st.subheader("Classification")
 
-                <div class="card-label">
-                    Classification
-                </div>
-
-                <div class="card-value">
-                    {predicted_label}
-                </div>
-
-            </div>
-            """,
-            unsafe_allow_html=True
+        st.metric(
+            label="Predicted Class",
+            value=predicted_label
         )
 
-        st.markdown(
-            f"""
-            <div class="result-card">
-
-                <div class="card-label">
-                    Confidence
-                </div>
-
-                <div class="card-value">
-                    {confidence * 100:.2f}%
-                </div>
-
-            </div>
-            """,
-            unsafe_allow_html=True
+        st.metric(
+            label="Confidence",
+            value=f"{confidence * 100:.2f}%"
         )
 
 
@@ -441,18 +389,7 @@ if uploaded_file is not None:
 
     with result_col2:
 
-        st.markdown(
-            """
-            <div class="result-card">
-
-                <div class="card-label">
-                    Lesion Segmentation
-                </div>
-
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        st.subheader("Lesion Segmentation")
 
         st.image(
             predicted_mask,
@@ -472,7 +409,9 @@ if uploaded_file is not None:
         unsafe_allow_html=True
     )
 
-    probability_col1, probability_col2, probability_col3 = st.columns(3)
+    probability_col1, probability_col2, probability_col3 = st.columns(
+        3
+    )
 
     probability_columns = [
         probability_col1,
@@ -490,8 +429,8 @@ if uploaded_file is not None:
         with probability_columns[class_id]:
 
             st.metric(
-                class_name,
-                f"{probability * 100:.2f}%"
+                label=class_name,
+                value=f"{probability * 100:.2f}%"
             )
 
             st.progress(
