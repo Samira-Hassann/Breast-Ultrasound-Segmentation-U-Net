@@ -206,4 +206,3 @@ if uploaded_file is not None:
     st.success(
         "Segmentation completed successfully."
     )
-```
