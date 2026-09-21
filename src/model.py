@@ -29,7 +29,7 @@ class MultiTaskUNet(nn.Module):
 
         features = self.unet.encoder(x)
 
-        decoder_output = self.unet.decoder(*features)
+        decoder_output = self.unet.decoder(features)
 
         segmentation_output = self.unet.segmentation_head(
             decoder_output
