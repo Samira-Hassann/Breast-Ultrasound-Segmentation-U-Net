@@ -2,6 +2,8 @@ import streamlit as st
 import torch
 import numpy as np
 from PIL import Image
+import os
+import gdown
 
 from src.model import MultiTaskUNet
 from src.preprocessing import preprocess_image
@@ -28,16 +30,55 @@ device = torch.device(
 
 
 # =========================================================
+# Model Configuration
+# =========================================================
+
+MODEL_PATH = "models/best_multitask_model.pth"
+
+DRIVE_FILE_ID = "1rVhTWQ2ROPUQOvhNGuNYQ0829rZNehfT"
+
+
+# =========================================================
+# Download Model
+# =========================================================
+
+def download_model():
+
+    if os.path.exists(MODEL_PATH):
+        return
+
+    os.makedirs(
+        "models",
+        exist_ok=True
+    )
+
+    url = (
+        f"https://drive.google.com/uc?id={DRIVE_FILE_ID}"
+    )
+
+    gdown.download(
+        url,
+        MODEL_PATH,
+        quiet=False
+    )
+
+
+# =========================================================
 # Load Model
 # =========================================================
 
 @st.cache_resource
 def load_model():
 
+    # Download model if it doesn't exist
+    download_model()
+
+    # Create model architecture
     model = MultiTaskUNet()
 
+    # Load trained weights
     checkpoint = torch.load(
-        "models/best_multitask_model.pth",
+        MODEL_PATH,
         map_location=device
     )
 
@@ -96,7 +137,9 @@ uploaded_file = st.file_uploader(
 
 if uploaded_file is not None:
 
-    image = Image.open(uploaded_file).convert("RGB")
+    image = Image.open(
+        uploaded_file
+    ).convert("RGB")
 
     st.subheader("Uploaded Image")
 
