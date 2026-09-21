@@ -339,48 +339,10 @@ if uploaded_file is not None:
     # =====================================================
     # Prediction Results
     # =====================================================
-
+    
     st.markdown(
-        '<div class="section-title">🎯 Prediction Results</div>',
-        unsafe_allow_html=True
+        f"### 🎯 Prediction: **{predicted_label}**  ·  **{confidence * 100:.2f}%**"
     )
-
-    result_col1, result_col2 = st.columns(
-        2,
-        gap="large"
-    )
-
-
-    with result_col1:
-
-        st.subheader("Classification")
-
-        st.metric(
-            "Predicted Class",
-            predicted_label
-        )
-
-        st.metric(
-            "Confidence",
-            f"{confidence * 100:.2f}%"
-        )
-
-
-    with result_col2:
-
-        st.subheader("Model Input")
-
-        st.metric(
-            "Input Resolution",
-            "256 × 256"
-        )
-
-        st.metric(
-            "Device",
-            str(device).upper()
-        )
-
-
     # =====================================================
     # Classification Probabilities
     # =====================================================
