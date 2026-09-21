@@ -1,5 +1,7 @@
 streamlit
-tensorflow
+torch
+torchvision
+segmentation-models-pytorch
 pillow
 numpy
-python-3.11
+matplotlib
