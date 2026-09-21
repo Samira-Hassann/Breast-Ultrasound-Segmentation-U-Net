@@ -1,4 +1,3 @@
-```python
 import streamlit as st
 import torch
 from PIL import Image
@@ -749,10 +748,3 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-```
-
-**ملحوظة مهمة:** أنا ما غيرتش الـ pipeline نفسها؛ ما زال:
-
-`Upload → Preprocessing → MultiTaskUNet → Classification + Segmentation`
-
-والـ model بيتحمل من Google Drive زي ما هو. التغيير الأساسي هنا هو **واجهة العرض فقط**.
