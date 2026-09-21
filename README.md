@@ -71,9 +71,6 @@ The application provides:
 ├── requirements.txt
 ├── README.md
 │
-├── models/
-│   └── best_multitask_model.pth
-│
 └── src/
     ├── model.py
     └── preprocessing.py
