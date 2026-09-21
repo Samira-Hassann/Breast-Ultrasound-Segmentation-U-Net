@@ -1,54 +1,50 @@
 import streamlit as st
 import torch
-import segmentation_models_pytorch as smp
-from torchvision import transforms
-from PIL import Image
 import numpy as np
-import matplotlib.pyplot as plt
+from PIL import Image
+
+from src.model import MultiTaskUNet
+from src.preprocessing import preprocess_image
 
 
-# ============================================================
-# Page Configuration
-# ============================================================
+# =========================================================
+# Configuration
+# =========================================================
 
 st.set_page_config(
-    page_title="Breast Ultrasound Segmentation",
+    page_title="Breast Ultrasound Analysis",
     page_icon="🩺",
     layout="wide"
 )
 
 
-# ============================================================
+# =========================================================
 # Device
-# ============================================================
+# =========================================================
 
 device = torch.device(
     "cuda" if torch.cuda.is_available() else "cpu"
 )
 
 
-# ============================================================
+# =========================================================
 # Load Model
-# ============================================================
+# =========================================================
 
 @st.cache_resource
 def load_model():
 
-    model = smp.Unet(
-        encoder_name="resnet34",
-        encoder_weights=None,
-        in_channels=3,
-        classes=1
+    model = MultiTaskUNet()
+
+    checkpoint = torch.load(
+        "models/best_multitask_model.pth",
+        map_location=device
     )
 
-    model.load_state_dict(
-        torch.load(
-            "best_unet.pth",
-            map_location=device
-        )
-    )
+    model.load_state_dict(checkpoint)
 
     model = model.to(device)
+
     model.eval()
 
     return model
@@ -57,72 +53,36 @@ def load_model():
 model = load_model()
 
 
-# ============================================================
-# Image Preprocessing
-# ============================================================
+# =========================================================
+# Class Names
+# =========================================================
 
-image_transform = transforms.Compose([
-    transforms.Resize((256, 256)),
-    transforms.ToTensor()
-])
-
-
-# ============================================================
-# Prediction Function
-# ============================================================
-
-def predict(image):
-
-    # Keep original image for display
-    original_image = image.copy()
-
-    # Convert image to RGB
-    image = image.convert("RGB")
-
-    # Same preprocessing used during training
-    image_tensor = image_transform(image)
-
-    # Add batch dimension
-    image_tensor = image_tensor.unsqueeze(0)
-
-    # Move to device
-    image_tensor = image_tensor.to(device)
-
-    # Prediction
-    with torch.no_grad():
-
-        pred = model(image_tensor)
-
-        prob = torch.sigmoid(pred)
-
-        pred_mask = (prob > 0.5).float()
-
-    # Convert prediction to NumPy
-    mask = (
-        pred_mask[0]
-        .squeeze(0)
-        .cpu()
-        .numpy()
-    )
-
-    return original_image, mask
+class_names = {
+    0: "Benign",
+    1: "Malignant",
+    2: "Normal"
+}
 
 
-# ============================================================
+# =========================================================
 # Title
-# ============================================================
+# =========================================================
 
-st.title("🩺 Breast Ultrasound Lesion Segmentation")
+st.title("🩺 Breast Ultrasound Analysis")
 
 st.write(
-    "Upload a breast ultrasound image and the model "
-    "will segment the lesion."
+    """
+    Upload a breast ultrasound image to obtain:
+    
+    - Lesion segmentation
+    - Breast lesion classification
+    """
 )
 
 
-# ============================================================
+# =========================================================
 # Upload Image
-# ============================================================
+# =========================================================
 
 uploaded_file = st.file_uploader(
     "Upload an ultrasound image",
@@ -130,79 +90,137 @@ uploaded_file = st.file_uploader(
 )
 
 
-# ============================================================
-# Run Prediction
-# ============================================================
+# =========================================================
+# Prediction
+# =========================================================
 
 if uploaded_file is not None:
 
-    image = Image.open(uploaded_file)
+    image = Image.open(uploaded_file).convert("RGB")
 
-    original_image, predicted_mask = predict(image)
+    st.subheader("Uploaded Image")
 
-
-    # ========================================================
-    # Create Overlay
-    # ========================================================
-
-    original_array = np.array(
-        original_image.resize((256, 256)).convert("RGB")
+    st.image(
+        image,
+        width=500
     )
 
-    overlay = original_array.copy()
 
-    # Highlight predicted lesion
-    overlay[predicted_mask == 1] = [255, 0, 0]
+    # -----------------------------------------------------
+    # Preprocessing
+    # -----------------------------------------------------
 
+    input_tensor = preprocess_image(image)
 
-    # Blend original image and mask
-    blended = (
-        0.6 * original_array +
-        0.4 * overlay
-    ).astype(np.uint8)
+    input_tensor = input_tensor.to(device)
 
 
-    # ========================================================
+    # -----------------------------------------------------
+    # Model Prediction
+    # -----------------------------------------------------
+
+    with torch.no_grad():
+
+        segmentation_output, classification_output = model(
+            input_tensor
+        )
+
+
+    # =====================================================
+    # Classification
+    # =====================================================
+
+    probabilities = torch.softmax(
+        classification_output,
+        dim=1
+    )
+
+    predicted_class = torch.argmax(
+        probabilities,
+        dim=1
+    ).item()
+
+    predicted_label = class_names[
+        predicted_class
+    ]
+
+    confidence = probabilities[
+        0,
+        predicted_class
+    ].item()
+
+
+    # =====================================================
+    # Segmentation
+    # =====================================================
+
+    segmentation_probability = torch.sigmoid(
+        segmentation_output
+    )
+
+    predicted_mask = (
+        segmentation_probability > 0.5
+    ).float()
+
+
+    predicted_mask = (
+        predicted_mask[0]
+        .cpu()
+        .squeeze(0)
+        .numpy()
+    )
+
+
+    # =====================================================
     # Display Results
-    # ========================================================
+    # =====================================================
 
-    col1, col2, col3 = st.columns(3)
+    st.subheader("Prediction Results")
+
+    col1, col2 = st.columns(2)
+
 
     with col1:
 
-        st.subheader("Original Image")
+        st.metric(
+            "Classification",
+            predicted_label
+        )
 
-        st.image(
-            original_image,
-            use_container_width=True
+        st.metric(
+            "Confidence",
+            f"{confidence * 100:.2f}%"
         )
 
 
     with col2:
 
-        st.subheader("Predicted Mask")
+        st.write("Segmentation Mask")
 
         st.image(
             predicted_mask,
-            clamp=True,
-            use_container_width=True
+            width=400
         )
 
 
-    with col3:
+    # =====================================================
+    # Classification Probabilities
+    # =====================================================
 
-        st.subheader("Segmentation Overlay")
+    st.subheader("Class Probabilities")
 
-        st.image(
-            blended,
-            use_container_width=True
+    for class_id, class_name in class_names.items():
+
+        probability = probabilities[
+            0,
+            class_id
+        ].item()
+
+        st.write(
+            f"{class_name}: "
+            f"{probability * 100:.2f}%"
         )
 
-
-    # ========================================================
-    # Prediction Information
-    # ========================================================
-
-    st.success(
-        "Segmentation completed successfully."
-    )
+        st.progress(
+            probability
+        )
