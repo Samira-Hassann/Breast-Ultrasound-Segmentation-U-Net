@@ -1,18 +1,28 @@
 import streamlit as st
+import torch
+import numpy as np
+from PIL import Image
+import os
+import gdown
 
-# =========================
-# Page Configuration
-# =========================
+from src.model import MultiTaskUNet
+from src.preprocessing import preprocess_image
+
+
+# =========================================================
+# Configuration
+# =========================================================
 
 st.set_page_config(
-    page_title="Breast Ultrasound AI",
+    page_title="Breast Ultrasound Analysis",
     page_icon="🩺",
     layout="wide"
 )
 
-# =========================
-# Simple Styling
-# =========================
+
+# =========================================================
+# Custom Styling
+# =========================================================
 
 st.markdown("""
 <style>
@@ -23,32 +33,156 @@ st.markdown("""
     padding-bottom: 3rem;
 }
 
-h1 {
+/* Main title */
+.main-title {
+    font-size: 40px;
+    font-weight: 700;
     color: #0f766e;
+    margin-bottom: 5px;
 }
 
+.subtitle {
+    font-size: 17px;
+    color: #64748b;
+    margin-bottom: 25px;
+}
+
+/* Section titles */
 .section-title {
-    font-size: 22px;
+    font-size: 23px;
     font-weight: 700;
-    margin-top: 25px;
+    color: #1e293b;
+    margin-top: 30px;
     margin-bottom: 15px;
 }
 
+/* Result cards */
+.result-card {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 15px;
+}
+
+/* Small labels */
+.card-label {
+    font-size: 14px;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.card-value {
+    font-size: 27px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-top: 5px;
+}
+
+/* Footer */
 .footer {
     text-align: center;
-    color: #888;
-    margin-top: 40px;
+    color: #94a3b8;
+    font-size: 13px;
+    margin-top: 35px;
     padding-top: 20px;
-    border-top: 1px solid #ddd;
+    border-top: 1px solid #e2e8f0;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
 
-# =========================
+# =========================================================
+# Device
+# =========================================================
+
+device = torch.device(
+    "cuda" if torch.cuda.is_available() else "cpu"
+)
+
+
+# =========================================================
+# Model Configuration
+# =========================================================
+
+MODEL_PATH = "models/best_multitask_model.pth"
+
+DRIVE_FILE_ID = "1rVhTWQ2ROPUQOvhNGuNYQ0829rZNehfT"
+
+
+# =========================================================
+# Download Model
+# =========================================================
+
+def download_model():
+
+    if os.path.exists(MODEL_PATH):
+        return
+
+    os.makedirs(
+        "models",
+        exist_ok=True
+    )
+
+    url = (
+        f"https://drive.google.com/uc?id={DRIVE_FILE_ID}"
+    )
+
+    gdown.download(
+        url,
+        MODEL_PATH,
+        quiet=False
+    )
+
+
+# =========================================================
+# Load Model
+# =========================================================
+
+@st.cache_resource
+def load_model():
+
+    # Download model if it doesn't exist
+    download_model()
+
+    # Create model architecture
+    model = MultiTaskUNet()
+
+    # Load trained weights
+    checkpoint = torch.load(
+        MODEL_PATH,
+        map_location=device
+    )
+
+    model.load_state_dict(checkpoint)
+
+    model = model.to(device)
+
+    model.eval()
+
+    return model
+
+
+model = load_model()
+
+
+# =========================================================
+# Class Names
+# =========================================================
+
+class_names = {
+    0: "Benign",
+    1: "Malignant",
+    2: "Normal"
+}
+
+
+# =========================================================
 # Sidebar
-# =========================
+# =========================================================
 
 with st.sidebar:
 
@@ -77,23 +211,29 @@ with st.sidebar:
     st.write("• Normal")
 
 
-# =========================
+# =========================================================
 # Header
-# =========================
+# =========================================================
 
-st.title("🩺 Breast Ultrasound AI")
+st.markdown(
+    '<div class="main-title">🩺 Breast Ultrasound AI</div>',
+    unsafe_allow_html=True
+)
 
-st.write(
-    "Multi-task deep learning for breast lesion "
-    "segmentation and classification."
+st.markdown(
+    '<div class="subtitle">'
+    'Multi-task deep learning for breast lesion '
+    'segmentation and classification.'
+    '</div>',
+    unsafe_allow_html=True
 )
 
 st.divider()
 
 
-# =========================
-# Upload
-# =========================
+# =========================================================
+# Upload Image
+# =========================================================
 
 st.markdown(
     '<div class="section-title">📤 Upload Ultrasound Image</div>',
@@ -106,51 +246,87 @@ uploaded_file = st.file_uploader(
 )
 
 
-# =========================
-# Main App
-# =========================
+# =========================================================
+# Prediction
+# =========================================================
 
 if uploaded_file is not None:
 
-    image = Image.open(uploaded_file).convert("RGB")
+    image = Image.open(
+        uploaded_file
+    ).convert("RGB")
+
+
+    # =====================================================
+    # Uploaded Image
+    # =====================================================
 
     st.markdown(
         '<div class="section-title">🖼️ Input Image</div>',
         unsafe_allow_html=True
     )
 
-    col1, col2 = st.columns([2, 1])
+    image_col, info_col = st.columns(
+        [2, 1],
+        gap="large"
+    )
 
-    with col1:
+    with image_col:
+
         st.image(
             image,
             caption="Uploaded Ultrasound Image",
             use_container_width=True
         )
 
-    with col2:
+    with info_col:
 
-        st.subheader("Image Information")
+        st.markdown(
+            """
+            <div class="result-card">
+                <div class="card-label">
+                    Image Information
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-        st.write(f"**Format:** {image.format or 'Image'}")
+        st.write(
+            f"**Format:** "
+            f"{image.format or 'Image'}"
+        )
+
         st.write(
             f"**Original Size:** "
             f"{image.width} × {image.height}"
         )
-        st.write("**Model Input:** 256 × 256")
 
-    # =========================
+        st.write(
+            "**Model Input:** 256 × 256"
+        )
+
+
+    # =====================================================
     # Preprocessing
-    # =========================
+    # =====================================================
 
-    input_tensor = preprocess_image(image)
-    input_tensor = input_tensor.to(device)
+    input_tensor = preprocess_image(
+        image
+    )
 
-    # =========================
-    # Prediction
-    # =========================
+    input_tensor = input_tensor.to(
+        device
+    )
 
-    with st.spinner("Analyzing ultrasound image..."):
+
+    # =====================================================
+    # Model Prediction
+    # =====================================================
+
+    with st.spinner(
+        "Analyzing ultrasound image..."
+    ):
 
         with torch.no_grad():
 
@@ -158,9 +334,10 @@ if uploaded_file is not None:
                 input_tensor
             )
 
-    # =========================
+
+    # =====================================================
     # Classification
-    # =========================
+    # =====================================================
 
     probabilities = torch.softmax(
         classification_output,
@@ -172,16 +349,19 @@ if uploaded_file is not None:
         dim=1
     ).item()
 
-    predicted_label = class_names[predicted_class]
+    predicted_label = class_names[
+        predicted_class
+    ]
 
     confidence = probabilities[
         0,
         predicted_class
     ].item()
 
-    # =========================
+
+    # =====================================================
     # Segmentation
-    # =========================
+    # =====================================================
 
     segmentation_probability = torch.sigmoid(
         segmentation_output
@@ -198,43 +378,81 @@ if uploaded_file is not None:
         .numpy()
     )
 
-    # =========================
-    # Prediction Summary
-    # =========================
+
+    # =====================================================
+    # Prediction Results
+    # =====================================================
 
     st.markdown(
-        '<div class="section-title">🎯 Prediction Summary</div>',
+        '<div class="section-title">🎯 Prediction Results</div>',
         unsafe_allow_html=True
     )
 
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.metric(
-            label="Classification",
-            value=predicted_label
-        )
-
-    with col2:
-        st.metric(
-            label="Confidence",
-            value=f"{confidence * 100:.2f}%"
-        )
-
-    # =========================
-    # Results
-    # =========================
-
-    st.markdown(
-        '<div class="section-title">🔬 Analysis Results</div>',
-        unsafe_allow_html=True
+    result_col1, result_col2 = st.columns(
+        2,
+        gap="large"
     )
 
-    col1, col2 = st.columns(2)
 
-    with col1:
+    # =====================================================
+    # Classification Result
+    # =====================================================
 
-        st.subheader("Lesion Segmentation")
+    with result_col1:
+
+        st.markdown(
+            f"""
+            <div class="result-card">
+
+                <div class="card-label">
+                    Classification
+                </div>
+
+                <div class="card-value">
+                    {predicted_label}
+                </div>
+
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        st.markdown(
+            f"""
+            <div class="result-card">
+
+                <div class="card-label">
+                    Confidence
+                </div>
+
+                <div class="card-value">
+                    {confidence * 100:.2f}%
+                </div>
+
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+
+    # =====================================================
+    # Segmentation Result
+    # =====================================================
+
+    with result_col2:
+
+        st.markdown(
+            """
+            <div class="result-card">
+
+                <div class="card-label">
+                    Lesion Segmentation
+                </div>
+
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
         st.image(
             predicted_mask,
@@ -242,44 +460,68 @@ if uploaded_file is not None:
             use_container_width=True
         )
 
-    with col2:
 
-        st.subheader("Classification Probabilities")
+    # =====================================================
+    # Classification Probabilities
+    # =====================================================
 
-        for class_id, class_name in class_names.items():
+    st.markdown(
+        '<div class="section-title">'
+        '📊 Classification Probabilities'
+        '</div>',
+        unsafe_allow_html=True
+    )
 
-            probability = probabilities[
-                0,
-                class_id
-            ].item()
+    probability_col1, probability_col2, probability_col3 = st.columns(3)
 
-            st.write(
-                f"**{class_name}** — "
+    probability_columns = [
+        probability_col1,
+        probability_col2,
+        probability_col3
+    ]
+
+    for class_id, class_name in class_names.items():
+
+        probability = probabilities[
+            0,
+            class_id
+        ].item()
+
+        with probability_columns[class_id]:
+
+            st.metric(
+                class_name,
                 f"{probability * 100:.2f}%"
             )
 
-            st.progress(probability)
+            st.progress(
+                probability
+            )
 
 
-# =========================
+# =========================================================
 # Disclaimer
-# =========================
+# =========================================================
 
 st.warning(
-    "⚠️ Research & Educational Use Only\n\n"
+    "⚠️ **Research & Educational Use Only**\n\n"
     "This application is not a medical diagnostic tool "
     "and should not replace evaluation by a qualified "
     "healthcare professional."
 )
 
 
-# =========================
+# =========================================================
 # Footer
-# =========================
+# =========================================================
 
-st.divider()
-
-st.caption(
-    "🩺 Breast Ultrasound AI • "
-    "PyTorch • U-Net • ResNet34 • Streamlit"
+st.markdown(
+    """
+    <div class="footer">
+        🩺 Breast Ultrasound AI
+        <br>
+        PyTorch • U-Net • ResNet34 • Streamlit
+    </div>
+    """,
+    unsafe_allow_html=True
 )
