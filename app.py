@@ -229,7 +229,6 @@ st.divider()
 # =========================================================
 # Upload
 # =========================================================
-
 st.markdown(
     '<div class="section-title">📤 Upload Ultrasound Image</div>',
     unsafe_allow_html=True
@@ -247,8 +246,13 @@ uploaded_file = st.file_uploader(
 
 if uploaded_file is not None:
 
-    image = Image.open(uploaded_file).convert("RGB")
+    # 1. فتح الصورة الأصلية المرفوعة
+    original_image = Image.open(uploaded_file).convert("RGB")
 
+    # 2. عمل Resize للصورة بمقاس 256x256 عشان تكون متطابقة مع أبعاد الماسك الناتج من الموديل
+    image = original_image.resize((256, 256), Image.Resampling.BILINEAR)
+
+    # 3. إدخال الصورة المعالجة للـ Preprocessing الخاص بالموديل
     input_tensor = preprocess_image(image).to(device)
 
     # -----------------------------------------------------
